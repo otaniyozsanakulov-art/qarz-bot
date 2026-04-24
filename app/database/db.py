@@ -190,18 +190,23 @@ def get_open_debts_by_direction(user_id: int, direction: str):
     conn = connect()
     cur = conn.cursor()
 
+    opposite = "borrowed" if direction == "lent" else "lent"
+
     cur.execute("""
         SELECT person_name, amount, currency, taken_at, due_at, note, confirmation_status
         FROM debts
-        WHERE creator_id = ? AND direction = ? AND status = 'open'
+        WHERE status = 'open'
+          AND (
+              (creator_id = ? AND direction = ?)
+              OR
+              (second_party_user_id = ? AND direction = ?)
+          )
         ORDER BY created_at DESC
-    """, (user_id, direction))
+    """, (user_id, direction, user_id, opposite))
 
     rows = cur.fetchall()
     conn.close()
     return rows
-
-
 def log_action(
     user_id: int | None,
     chat_id: int | None,
@@ -236,21 +241,26 @@ def search_open_debts(user_id: int, direction: str, search_text: str):
     conn = connect()
     cur = conn.cursor()
 
+    opposite = "borrowed" if direction == "lent" else "lent"
+
     search_clean = search_text.strip().replace("@", "").lower()
     like_value = f"%{search_clean}%"
 
     cur.execute("""
         SELECT person_name, amount, currency, taken_at, due_at, note, confirmation_status
         FROM debts
-        WHERE creator_id = ?
-          AND direction = ?
-          AND status = 'open'
+        WHERE status = 'open'
+          AND (
+              (creator_id = ? AND direction = ?)
+              OR
+              (second_party_user_id = ? AND direction = ?)
+          )
           AND (
               LOWER(person_name) LIKE ?
               OR LOWER(REPLACE(COALESCE(second_party_username, ''), '@', '')) LIKE ?
           )
         ORDER BY created_at DESC
-    """, (user_id, direction, like_value, like_value))
+    """, (user_id, direction, user_id, opposite, like_value, like_value))
 
     rows = cur.fetchall()
     conn.close()

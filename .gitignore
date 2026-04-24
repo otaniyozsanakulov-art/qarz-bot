@@ -1,0 +1,6 @@
+.venv/
+.idea/
+.env
+debts_pro.db
+__pycache__/
+*.pyc

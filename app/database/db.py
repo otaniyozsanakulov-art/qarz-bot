@@ -319,3 +319,19 @@ def get_last_logs(limit=10):
     rows = cur.fetchall()
     conn.close()
     return rows
+def get_pending_debts_for_user(user_id: int):
+    conn = connect()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, creator_id, person_name, amount, currency, direction, taken_at, due_at, note
+        FROM debts
+        WHERE second_party_user_id = ?
+          AND confirmation_status = 'pending'
+          AND status = 'open'
+        ORDER BY created_at DESC
+    """, (user_id,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
